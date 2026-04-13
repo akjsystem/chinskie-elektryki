@@ -1,5 +1,5 @@
 export default function Home() {
-  // Symulacja bazy danych - tak będą wyglądać dane pobrane z Supabase/API
+  // Symulacja bazy danych - dodaliśmy pole serviceCost
   const cars = [
     {
       id: 1,
@@ -9,6 +9,7 @@ export default function Home() {
       rangeReal: 480,
       rangeWLTP: 520,
       chargeTime: 26,
+      serviceCost: "~ 1 200 PLN / rok",
       depreciation: "Niskie Ryzyko",
       depreciationColor: "text-emerald-700 bg-emerald-50",
       score: 8.5,
@@ -23,6 +24,7 @@ export default function Home() {
       rangeReal: 330,
       rangeWLTP: 385,
       chargeTime: 26,
+      serviceCost: "~ 950 PLN / rok",
       depreciation: "Średnie Ryzyko",
       depreciationColor: "text-amber-700 bg-amber-50",
       score: 7.8,
@@ -37,6 +39,7 @@ export default function Home() {
       rangeReal: 540,
       rangeWLTP: 620,
       chargeTime: 28,
+      serviceCost: "~ 1 800 PLN / rok",
       depreciation: "Niskie Ryzyko",
       depreciationColor: "text-emerald-700 bg-emerald-50",
       score: 9.1,
@@ -103,7 +106,7 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Sekcja: Katalog (Mapowanie danych z tablicy) */}
+        {/* Sekcja: Katalog */}
         <div className="flex justify-between items-end mb-6">
           <h2 className="text-2xl font-bold">Katalog Pojazdów</h2>
           <span className="text-sm text-gray-500 hidden md:block">Znaleziono: {cars.length}</span>
@@ -147,6 +150,10 @@ export default function Home() {
                   <div className="flex justify-between text-sm items-center">
                     <span className="text-gray-500">Ładowanie 10-80%:</span>
                     <span className="font-semibold">{car.chargeTime} min</span>
+                  </div>
+                  <div className="flex justify-between text-sm items-center">
+                    <span className="text-gray-500">Koszty serwisu:</span>
+                    <span className="font-semibold">{car.serviceCost}</span>
                   </div>
                   <div className="flex justify-between text-sm items-center">
                     <span className="text-gray-500">Utrata wartości:</span>
