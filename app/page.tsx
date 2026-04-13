@@ -1,5 +1,8 @@
+// NOWA IMPORTOWANA LINIJKA NA SAMEJ GÓRZE
+import Link from 'next/link';
+
 export default function Home() {
-  // Symulacja bazy danych - dodaliśmy pole serviceCost
+  // Symulacja bazy danych (bez zmian)
   const cars = [
     {
       id: 1,
@@ -51,7 +54,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-gray-50 text-gray-900 font-sans">
       
-      {/* Nagłówek (Hero Section) */}
+      {/* Nagłówek (Hero Section) (bez zmian) */}
       <section className="bg-gradient-to-r from-blue-900 to-slate-800 text-white py-20 px-6 text-center">
         <h1 className="text-4xl md:text-5xl font-extrabold mb-6 tracking-tight">
           Chińskie Elektryki <br className="md:hidden" /> Bez Tajemnic
@@ -62,7 +65,7 @@ export default function Home() {
       </section>
 
       <div className="max-w-7xl mx-auto px-6 -mt-8 relative z-10">
-        {/* Panel Filtrów */}
+        {/* Panel Filtrów (bez zmian) */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-12">
           <h2 className="text-lg font-bold mb-4">Znajdź model dla siebie</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -163,9 +166,13 @@ export default function Home() {
                   </div>
                 </div>
                 
-                <button className="w-full bg-slate-900 text-white py-3 rounded-xl font-semibold hover:bg-slate-800 transition-colors mt-auto">
+                {/* ZMIANA TUTAJ: <button> zamieniony na <Link> */}
+                <Link 
+                  href={`/auto/${car.id}`} 
+                  className="w-full bg-slate-900 text-white py-3 rounded-xl font-semibold hover:bg-slate-800 transition-colors mt-auto text-center block"
+                >
                   Pełny raport
-                </button>
+                </Link>
               </div>
             </div>
           ))}
