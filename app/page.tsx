@@ -1,181 +1,145 @@
 import Link from 'next/link';
 
-export default function Home() {
-  // Symulacja bazy danych z kosztami serwisu
-  const cars = [
+// Funkcja symulująca bazę danych
+function getCarData(id: string) {
+  const allCars = [
     {
       id: 1,
       brand: "BYD",
       model: "Seal Excellence",
-      price: "~ 207 000 PLN",
+      priceRaw: 207000,
+      priceFormatted: "207 000 PLN",
       rangeReal: 480,
       rangeWLTP: 520,
       chargeTime: 26,
-      serviceCost: "~ 1 200 PLN / rok",
+      serviceCostRaw: 1200,
+      serviceCostFormatted: "1 200 PLN",
       depreciation: "Niskie Ryzyko",
-      depreciationColor: "text-emerald-700 bg-emerald-50",
+      depreciationColor: "text-emerald-700 bg-emerald-100",
+      depreciationDesc: "Oczekiwana wysoka wartość rezydualna dzięki gwarancji na baterię (8 lat) i technologii Blade.",
       score: 8.5,
       drive: "AWD (4x4)",
-      desc: "Sportowy sedan z innowacyjną baterią Blade."
-    },
-    {
-      id: 2,
-      brand: "MG",
-      model: "MG4 XPOWER",
-      price: "~ 169 900 PLN",
-      rangeReal: 330,
-      rangeWLTP: 385,
-      chargeTime: 26,
-      serviceCost: "~ 950 PLN / rok",
-      depreciation: "Średnie Ryzyko",
-      depreciationColor: "text-amber-700 bg-amber-50",
-      score: 7.8,
-      drive: "AWD (4x4)",
-      desc: "Elektryczny hot-hatch oferujący niesamowite przyspieszenie w rewelacyjnej cenie."
-    },
-    {
-      id: 3,
-      brand: "Zeekr",
-      model: "001 Long Range",
-      price: "~ 275 000 PLN",
-      rangeReal: 540,
-      rangeWLTP: 620,
-      chargeTime: 28,
-      serviceCost: "~ 1 800 PLN / rok",
-      depreciation: "Niskie Ryzyko",
-      depreciationColor: "text-emerald-700 bg-emerald-50",
-      score: 9.1,
-      drive: "RWD (Tył)",
-      desc: "Luksusowy shooting brake o potężnym zasięgu i genialnym wykończeniu wnętrza."
+      power: "530 KM (390 kW)",
+      torque: "670 Nm",
+      accel: "3.8 s (0-100 km/h)",
+      battery: "82.5 kWh (Netto, LFP Blade)",
+      chargingMax: "150 kW DC / 11 kW AC",
+      v2l: "Tak (3.3 kW)",
+      boot: "400 litrów + 53 litry (Frunk)",
+      warranty: "6 lat / 150k km (Pojazd), 8 lat / 200k km (Bateria)"
     }
   ];
 
+  return allCars.find(c => c.id.toString() === id);
+}
+
+// ZMIANA: Dodano 'async' i 'Promise', aby współpracowało z Next.js 15
+export default async function CarReportPage({ params }: { params: Promise<{ id: string }> }) {
+  
+  // ZMIANA: Zatrzymujemy kod na ułamek sekundy, aż URL zostanie wczytany ('await')
+  const resolvedParams = await params;
+  const car = getCarData(resolvedParams.id);
+
+  if (!car) {
+    return (
+      <main className="min-h-screen bg-gray-50 p-10 flex flex-col items-center justify-center text-center">
+        <h1 className="text-2xl font-bold mb-4 text-gray-800">Nie znaleziono takiego pojazdu.</h1>
+        <Link href="/" className="text-blue-600 hover:text-blue-800 font-semibold underline">Wróć do katalogu</Link>
+      </main>
+    );
+  }
+
+  // Obliczenia symulujące algorytmy
+  const estDepreciation5Years = Math.round(car.priceRaw * (car.id === 1 ? 0.35 : 0.45));
+  const totalService5Years = car.serviceCostRaw * 5;
+
   return (
-    <main className="min-h-screen bg-gray-50 text-gray-900 font-sans">
+    <main className="min-h-screen bg-gray-50 text-gray-900 font-sans pb-20">
       
-      {/* Nagłówek (Hero Section) */}
-      <section className="bg-gradient-to-r from-blue-900 to-slate-800 text-white py-20 px-6 text-center">
-        <h1 className="text-4xl md:text-5xl font-extrabold mb-6 tracking-tight">
-          Chińskie Elektryki <br className="md:hidden" /> Bez Tajemnic
-        </h1>
-        <p className="text-lg md:text-xl max-w-2xl mx-auto mb-10 text-blue-100">
-          Zautomatyzowane recenzje, algorytmiczna analiza utraty wartości i prawdziwe zasięgi. Wybierz świadomie.
-        </p>
-        <div className="flex justify-center gap-4">
-          <a href="#katalog" className="bg-white text-blue-900 px-8 py-3 rounded-full font-bold hover:bg-gray-100 transition shadow-lg inline-block">
-            Katalog Modeli
-          </a>
+      {/* Pasek Tytułowy */}
+      <header className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link href="/" className="text-gray-500 hover:text-gray-900 transition p-2 bg-gray-100 hover:bg-gray-200 rounded-full text-sm font-bold">
+              ← Wróć
+            </Link>
+            <div>
+              <p className="text-sm text-blue-600 font-bold uppercase tracking-wider">{car.brand}</p>
+              <h1 className="text-2xl md:text-3xl font-black tracking-tight">{car.model}</h1>
+            </div>
+          </div>
+          <div className="flex items-center gap-6">
+            <div className="text-right hidden sm:block">
+              <p className="text-gray-500 text-xs uppercase font-semibold">Cena katalogowa od</p>
+              <p className="text-2xl font-bold text-gray-950">{car.priceFormatted}</p>
+            </div>
+            <div className="bg-emerald-100 text-emerald-900 flex flex-col items-center justify-center w-14 h-14 md:w-16 md:h-16 rounded-2xl font-black text-xl md:text-2xl shadow-inner border border-emerald-200">
+              {car.score}
+            </div>
+          </div>
         </div>
-      </section>
+      </header>
 
-      <div className="max-w-7xl mx-auto px-6 -mt-8 relative z-10">
-        {/* Panel Filtrów */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-12">
-          <h2 className="text-lg font-bold mb-4">Znajdź model dla siebie</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            
-            <div className="flex flex-col">
-              <label className="text-xs text-gray-500 font-semibold mb-1 uppercase">Marka</label>
-              <select className="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
-                <option>Wszystkie marki</option>
-                <option>BYD</option>
-                <option>MG</option>
-                <option>Nio</option>
-                <option>Zeekr</option>
-              </select>
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-xs text-gray-500 font-semibold mb-1 uppercase">Maks. Cena</label>
-              <select className="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
-                <option>Dowolna</option>
-                <option>do 150 000 PLN</option>
-                <option>do 200 000 PLN</option>
-                <option>do 250 000 PLN</option>
-              </select>
-            </div>
-
-            <div className="flex flex-col">
-              <label className="text-xs text-gray-500 font-semibold mb-1 uppercase">Napęd</label>
-              <select className="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
-                <option>Wszystkie</option>
-                <option>RWD (Na tył)</option>
-                <option>AWD (4x4)</option>
-              </select>
-            </div>
-
-            <div className="flex items-end">
-              <button className="w-full bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-700 transition shadow-sm">
-                Szukaj
-              </button>
-            </div>
-
+      {/* Główna zawartość raportu */}
+      <div className="max-w-7xl mx-auto px-6 mt-10 grid grid-cols-1 lg:grid-cols-3 gap-10">
+        
+        {/* Lewa kolumna: Zdjęcie */}
+        <div className="lg:col-span-1 space-y-8">
+          <div className="bg-slate-200 rounded-3xl h-80 flex items-center justify-center border border-gray-200 shadow-inner">
+            <span className="text-slate-500 font-medium">Zdjęcie z API: {car.brand}</span>
+          </div>
+          
+          <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+            <h3 className="text-xl font-bold mb-4">Gwarancja fabryczna</h3>
+            <p className="text-sm text-gray-700 leading-relaxed bg-gray-50 p-4 rounded-xl border border-gray-100">{car.warranty}</p>
           </div>
         </div>
 
-        {/* Sekcja: Katalog */}
-        <div id="katalog" className="flex justify-between items-end mb-6 pt-4">
-          <h2 className="text-2xl font-bold">Katalog Pojazdów</h2>
-          <span className="text-sm text-gray-500 hidden md:block">Znaleziono: {cars.length}</span>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-20">
+        {/* Prawa kolumna: Szczegóły */}
+        <div className="lg:col-span-2 space-y-10">
           
-          {cars.map((car) => (
-            <div key={car.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col">
-              {/* Miejsce na zdjęcie */}
-              <div className="h-52 bg-slate-100 flex items-center justify-center relative border-b border-gray-100">
-                <span className="text-slate-400 font-medium">Zdjęcie API: {car.brand} {car.model}</span>
-                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold shadow-sm">
-                  {car.drive}
+          <section className="bg-white p-8 md:p-10 rounded-3xl shadow-sm border border-gray-100">
+            <h2 className="text-2xl font-black mb-8 tracking-tight">Specyfikacja Techniczna</h2>
+            
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-8">
+              {[
+                { label: "Napęd", value: car.drive },
+                { label: "Moc", value: car.power },
+                { label: "Przyspieszenie", value: car.accel },
+                { label: "Bateria", value: car.battery },
+                { label: "Zasięg Prawdziwy", value: `${car.rangeReal} km` },
+                { label: "Zasięg WLTP", value: `${car.rangeWLTP} km` },
+                { label: "Ładowanie", value: car.chargingMax },
+                { label: "Ładowanie 10-80%", value: `${car.chargeTime} minut` },
+                { label: "Bagażnik", value: car.boot },
+              ].map(item => (
+                <div key={item.label} className="border-b border-gray-100 pb-4">
+                  <p className="text-xs text-gray-500 font-semibold mb-1 uppercase tracking-wider">{item.label}</p>
+                  <p className="text-base font-semibold text-gray-950">{item.value}</p>
                 </div>
-              </div>
-              
-              <div className="p-6 flex flex-col flex-grow">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <p className="text-xs text-blue-600 font-bold uppercase tracking-wider mb-1">{car.brand}</p>
-                    <h3 className="text-xl font-black leading-tight">{car.model}</h3>
-                  </div>
-                  <div className="bg-emerald-100 text-emerald-800 flex flex-col items-center justify-center w-10 h-10 rounded-lg font-bold text-sm shadow-sm">
-                    {car.score}
-                  </div>
-                </div>
-                
-                <p className="text-gray-500 text-sm mb-6 pb-4 border-b border-gray-100 flex-grow">{car.desc}</p>
-                
-                {/* Parametry z API */}
-                <div className="space-y-3 mb-6">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Szacowana cena:</span>
-                    <span className="font-bold text-base">{car.price}</span>
-                  </div>
-                  <div className="flex justify-between text-sm items-center">
-                    <span className="text-gray-500">Zasięg (Realny / WLTP):</span>
-                    <span className="font-semibold">{car.rangeReal} km / <span className="text-gray-400">{car.rangeWLTP} km</span></span>
-                  </div>
-                  <div className="flex justify-between text-sm items-center">
-                    <span className="text-gray-500">Koszty serwisu:</span>
-                    <span className="font-semibold">{car.serviceCost}</span>
-                  </div>
-                  <div className="flex justify-between text-sm items-center">
-                    <span className="text-gray-500">Utrata wartości:</span>
-                    <span className={`font-semibold px-2 py-0.5 rounded text-xs ${car.depreciationColor}`}>
-                      {car.depreciation}
-                    </span>
-                  </div>
-                </div>
-                
-                {/* ZMIANA: Prawidłowy Link z Next.js */}
-                <Link 
-                  href={`/auto/${car.id}`} 
-                  className="w-full bg-slate-900 text-white py-3 rounded-xl font-semibold hover:bg-slate-800 transition-colors mt-auto text-center block"
-                >
-                  Pełny raport
-                </Link>
-              </div>
+              ))}
             </div>
-          ))}
+          </section>
+
+          <section className="bg-slate-900 text-white p-8 md:p-10 rounded-3xl shadow-xl">
+            <div className="flex justify-between items-start mb-8">
+                <h2 className="text-xl md:text-2xl font-black tracking-tight">Algorytmiczna Prognoza TCO (5 lat)</h2>
+                <span className={`font-bold px-3 py-1 rounded-full text-xs hidden sm:block ${car.depreciationColor}`}>{car.depreciation}</span>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+                    <p className="text-sm text-slate-400 mb-1">Przewidywana utrata wartości</p>
+                    <p className="text-3xl font-extrabold text-emerald-400">~ {estDepreciation5Years.toLocaleString('pl-PL')} PLN</p>
+                    <p className="text-xs text-slate-500 mt-2 leading-relaxed">{car.depreciationDesc}</p>
+                </div>
+                <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700">
+                    <p className="text-sm text-slate-400 mb-1">Szacunkowy koszt serwisu (5 lat)</p>
+                    <p className="text-3xl font-extrabold text-slate-100">~ {totalService5Years.toLocaleString('pl-PL')} PLN</p>
+                    <p className="text-xs text-slate-500 mt-2">Przeglądy okresowe wg zaleceń producenta.</p>
+                </div>
+            </div>
+          </section>
 
         </div>
       </div>
