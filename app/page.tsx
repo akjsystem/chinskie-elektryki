@@ -1,82 +1,170 @@
 export default function Home() {
+  // Symulacja bazy danych - tak będą wyglądać dane pobrane z Supabase/API
+  const cars = [
+    {
+      id: 1,
+      brand: "BYD",
+      model: "Seal Excellence",
+      price: "~ 207 000 PLN",
+      rangeReal: 480,
+      rangeWLTP: 520,
+      chargeTime: 26,
+      depreciation: "Niskie Ryzyko",
+      depreciationColor: "text-emerald-700 bg-emerald-50",
+      score: 8.5,
+      drive: "AWD (4x4)",
+      desc: "Sportowy sedan z innowacyjną baterią Blade."
+    },
+    {
+      id: 2,
+      brand: "MG",
+      model: "MG4 XPOWER",
+      price: "~ 169 900 PLN",
+      rangeReal: 330,
+      rangeWLTP: 385,
+      chargeTime: 26,
+      depreciation: "Średnie Ryzyko",
+      depreciationColor: "text-amber-700 bg-amber-50",
+      score: 7.8,
+      drive: "AWD (4x4)",
+      desc: "Elektryczny hot-hatch oferujący niesamowite przyspieszenie w rewelacyjnej cenie."
+    },
+    {
+      id: 3,
+      brand: "Zeekr",
+      model: "001 Long Range",
+      price: "~ 275 000 PLN",
+      rangeReal: 540,
+      rangeWLTP: 620,
+      chargeTime: 28,
+      depreciation: "Niskie Ryzyko",
+      depreciationColor: "text-emerald-700 bg-emerald-50",
+      score: 9.1,
+      drive: "RWD (Tył)",
+      desc: "Luksusowy shooting brake o potężnym zasięgu i genialnym wykończeniu wnętrza."
+    }
+  ];
+
   return (
     <main className="min-h-screen bg-gray-50 text-gray-900 font-sans">
       
       {/* Nagłówek (Hero Section) */}
-      <section className="bg-gradient-to-r from-blue-900 to-slate-800 text-white py-24 px-6 text-center">
-        <h1 className="text-4xl md:text-6xl font-extrabold mb-6 tracking-tight">
+      <section className="bg-gradient-to-r from-blue-900 to-slate-800 text-white py-20 px-6 text-center">
+        <h1 className="text-4xl md:text-5xl font-extrabold mb-6 tracking-tight">
           Chińskie Elektryki <br className="md:hidden" /> Bez Tajemnic
         </h1>
-        <p className="text-xl max-w-2xl mx-auto mb-10 text-blue-100">
+        <p className="text-lg md:text-xl max-w-2xl mx-auto mb-10 text-blue-100">
           Zautomatyzowane recenzje, algorytmiczna analiza utraty wartości i prawdziwe zasięgi. Wybierz świadomie.
         </p>
-        <div className="flex justify-center gap-4">
-          <button className="bg-white text-blue-900 px-8 py-3 rounded-full font-bold hover:bg-gray-100 transition shadow-lg">
-            Katalog Modeli
-          </button>
-        </div>
       </section>
 
-      {/* Sekcja: Ostatnio dodane (Mockup zautomatyzowanych danych) */}
-      <section className="max-w-7xl mx-auto py-16 px-6">
-        <div className="flex justify-between items-end mb-8">
-          <h2 className="text-3xl font-bold">Ostatnio Zaktualizowane</h2>
-          <span className="text-sm text-gray-500 hidden md:block">Aktualizacja API: Dzisiaj 04:00</span>
-        </div>
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          
-          {/* Przykładowa Karta Samochodu (Później będzie generowana z bazy) */}
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-shadow duration-300">
-            {/* Miejsce na zdjęcie */}
-            <div className="h-56 bg-slate-200 flex items-center justify-center relative">
-              <span className="text-slate-400 font-medium">Zdjęcie API: BYD Seal</span>
-              <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold shadow-sm">
-                AWD (4x4)
-              </div>
-            </div>
+      <div className="max-w-7xl mx-auto px-6 -mt-8 relative z-10">
+        {/* Panel Filtrów */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-12">
+          <h2 className="text-lg font-bold mb-4">Znajdź model dla siebie</h2>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             
-            <div className="p-6">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <p className="text-xs text-blue-600 font-bold uppercase tracking-wider mb-1">BYD</p>
-                  <h3 className="text-2xl font-black leading-tight">Seal Excellence</h3>
-                </div>
-                <div className="bg-emerald-100 text-emerald-800 flex flex-col items-center justify-center w-12 h-12 rounded-xl font-bold">
-                  8.5
-                </div>
-              </div>
-              
-              <p className="text-gray-500 text-sm mb-6 pb-4 border-b border-gray-100">Sportowy sedan z innowacyjną baterią Blade.</p>
-              
-              {/* Parametry z API */}
-              <div className="space-y-3 mb-8">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Szacowana cena:</span>
-                  <span className="font-bold text-lg">~ 207 000 PLN</span>
-                </div>
-                <div className="flex justify-between text-sm items-center">
-                  <span className="text-gray-500">Zasięg (Realny / WLTP):</span>
-                  <span className="font-semibold">480 km / <span className="text-gray-400">520 km</span></span>
-                </div>
-                <div className="flex justify-between text-sm items-center">
-                  <span className="text-gray-500">Ładowanie 10-80%:</span>
-                  <span className="font-semibold">26 minut</span>
-                </div>
-                <div className="flex justify-between text-sm items-center">
-                  <span className="text-gray-500">Algorytm utraty wartości:</span>
-                  <span className="font-semibold text-amber-600 bg-amber-50 px-2 py-0.5 rounded">Niskie Ryzyko</span>
-                </div>
-              </div>
-              
-              <button className="w-full bg-slate-900 text-white py-3 rounded-xl font-semibold hover:bg-blue-600 transition-colors">
-                Pełny raport i koszty
+            <div className="flex flex-col">
+              <label className="text-xs text-gray-500 font-semibold mb-1 uppercase">Marka</label>
+              <select className="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                <option>Wszystkie marki</option>
+                <option>BYD</option>
+                <option>MG</option>
+                <option>Nio</option>
+                <option>Zeekr</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col">
+              <label className="text-xs text-gray-500 font-semibold mb-1 uppercase">Maksymalna Cena</label>
+              <select className="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                <option>Dowolna</option>
+                <option>do 150 000 PLN</option>
+                <option>do 200 000 PLN</option>
+                <option>do 250 000 PLN</option>
+              </select>
+            </div>
+
+            <div className="flex flex-col">
+              <label className="text-xs text-gray-500 font-semibold mb-1 uppercase">Napęd</label>
+              <select className="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
+                <option>Wszystkie</option>
+                <option>RWD (Na tył)</option>
+                <option>AWD (4x4)</option>
+              </select>
+            </div>
+
+            <div className="flex items-end">
+              <button className="w-full bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-700 transition shadow-sm">
+                Szukaj
               </button>
             </div>
+
           </div>
+        </div>
+
+        {/* Sekcja: Katalog (Mapowanie danych z tablicy) */}
+        <div className="flex justify-between items-end mb-6">
+          <h2 className="text-2xl font-bold">Katalog Pojazdów</h2>
+          <span className="text-sm text-gray-500 hidden md:block">Znaleziono: {cars.length}</span>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-20">
+          
+          {cars.map((car) => (
+            <div key={car.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col">
+              {/* Miejsce na zdjęcie */}
+              <div className="h-52 bg-slate-100 flex items-center justify-center relative border-b border-gray-100">
+                <span className="text-slate-400 font-medium">Zdjęcie API: {car.brand} {car.model}</span>
+                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold shadow-sm">
+                  {car.drive}
+                </div>
+              </div>
+              
+              <div className="p-6 flex flex-col flex-grow">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <p className="text-xs text-blue-600 font-bold uppercase tracking-wider mb-1">{car.brand}</p>
+                    <h3 className="text-xl font-black leading-tight">{car.model}</h3>
+                  </div>
+                  <div className="bg-emerald-100 text-emerald-800 flex flex-col items-center justify-center w-10 h-10 rounded-lg font-bold text-sm shadow-sm">
+                    {car.score}
+                  </div>
+                </div>
+                
+                <p className="text-gray-500 text-sm mb-6 pb-4 border-b border-gray-100 flex-grow">{car.desc}</p>
+                
+                {/* Parametry z API */}
+                <div className="space-y-3 mb-6">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-500">Szacowana cena:</span>
+                    <span className="font-bold text-base">{car.price}</span>
+                  </div>
+                  <div className="flex justify-between text-sm items-center">
+                    <span className="text-gray-500">Zasięg (Realny / WLTP):</span>
+                    <span className="font-semibold">{car.rangeReal} km / <span className="text-gray-400">{car.rangeWLTP} km</span></span>
+                  </div>
+                  <div className="flex justify-between text-sm items-center">
+                    <span className="text-gray-500">Ładowanie 10-80%:</span>
+                    <span className="font-semibold">{car.chargeTime} min</span>
+                  </div>
+                  <div className="flex justify-between text-sm items-center">
+                    <span className="text-gray-500">Utrata wartości:</span>
+                    <span className={`font-semibold px-2 py-0.5 rounded text-xs ${car.depreciationColor}`}>
+                      {car.depreciation}
+                    </span>
+                  </div>
+                </div>
+                
+                <button className="w-full bg-slate-900 text-white py-3 rounded-xl font-semibold hover:bg-slate-800 transition-colors mt-auto">
+                  Pełny raport
+                </button>
+              </div>
+            </div>
+          ))}
 
         </div>
-      </section>
+      </div>
     </main>
   );
 }
