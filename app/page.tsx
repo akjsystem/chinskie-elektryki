@@ -1,8 +1,7 @@
-// NOWA IMPORTOWANA LINIJKA NA SAMEJ GÓRZE
 import Link from 'next/link';
 
 export default function Home() {
-  // Symulacja bazy danych (bez zmian)
+  // Symulacja bazy danych z kosztami serwisu
   const cars = [
     {
       id: 1,
@@ -54,7 +53,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-gray-50 text-gray-900 font-sans">
       
-      {/* Nagłówek (Hero Section) (bez zmian) */}
+      {/* Nagłówek (Hero Section) */}
       <section className="bg-gradient-to-r from-blue-900 to-slate-800 text-white py-20 px-6 text-center">
         <h1 className="text-4xl md:text-5xl font-extrabold mb-6 tracking-tight">
           Chińskie Elektryki <br className="md:hidden" /> Bez Tajemnic
@@ -62,10 +61,15 @@ export default function Home() {
         <p className="text-lg md:text-xl max-w-2xl mx-auto mb-10 text-blue-100">
           Zautomatyzowane recenzje, algorytmiczna analiza utraty wartości i prawdziwe zasięgi. Wybierz świadomie.
         </p>
+        <div className="flex justify-center gap-4">
+          <a href="#katalog" className="bg-white text-blue-900 px-8 py-3 rounded-full font-bold hover:bg-gray-100 transition shadow-lg inline-block">
+            Katalog Modeli
+          </a>
+        </div>
       </section>
 
       <div className="max-w-7xl mx-auto px-6 -mt-8 relative z-10">
-        {/* Panel Filtrów (bez zmian) */}
+        {/* Panel Filtrów */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-12">
           <h2 className="text-lg font-bold mb-4">Znajdź model dla siebie</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -82,7 +86,7 @@ export default function Home() {
             </div>
 
             <div className="flex flex-col">
-              <label className="text-xs text-gray-500 font-semibold mb-1 uppercase">Maksymalna Cena</label>
+              <label className="text-xs text-gray-500 font-semibold mb-1 uppercase">Maks. Cena</label>
               <select className="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
                 <option>Dowolna</option>
                 <option>do 150 000 PLN</option>
@@ -110,7 +114,7 @@ export default function Home() {
         </div>
 
         {/* Sekcja: Katalog */}
-        <div className="flex justify-between items-end mb-6">
+        <div id="katalog" className="flex justify-between items-end mb-6 pt-4">
           <h2 className="text-2xl font-bold">Katalog Pojazdów</h2>
           <span className="text-sm text-gray-500 hidden md:block">Znaleziono: {cars.length}</span>
         </div>
@@ -151,10 +155,6 @@ export default function Home() {
                     <span className="font-semibold">{car.rangeReal} km / <span className="text-gray-400">{car.rangeWLTP} km</span></span>
                   </div>
                   <div className="flex justify-between text-sm items-center">
-                    <span className="text-gray-500">Ładowanie 10-80%:</span>
-                    <span className="font-semibold">{car.chargeTime} min</span>
-                  </div>
-                  <div className="flex justify-between text-sm items-center">
                     <span className="text-gray-500">Koszty serwisu:</span>
                     <span className="font-semibold">{car.serviceCost}</span>
                   </div>
@@ -166,7 +166,7 @@ export default function Home() {
                   </div>
                 </div>
                 
-                {/* ZMIANA TUTAJ: <button> zamieniony na <Link> */}
+                {/* ZMIANA: Prawidłowy Link z Next.js */}
                 <Link 
                   href={`/auto/${car.id}`} 
                   className="w-full bg-slate-900 text-white py-3 rounded-xl font-semibold hover:bg-slate-800 transition-colors mt-auto text-center block"
