@@ -1,53 +1,72 @@
 import Link from 'next/link';
+import { createClient } from '@supabase/supabase-js';
 
-export default function Home() {
-  const cars = [
-    {
-      id: 1,
-      brand: "BYD",
-      model: "Seal Excellence",
-      price: "~ 207 000 PLN",
-      rangeReal: 480,
-      rangeWLTP: 520,
-      chargeTime: 26,
-      serviceCost: "~ 1 200 PLN / rok",
-      depreciation: "Niskie Ryzyko",
-      depreciationColor: "text-emerald-700 bg-emerald-50",
-      score: 8.5,
-      drive: "AWD (4x4)",
-      desc: "Sportowy sedan z innowacyjną baterią Blade."
-    },
-    {
-      id: 2,
-      brand: "MG",
-      model: "MG4 XPOWER",
-      price: "~ 169 900 PLN",
-      rangeReal: 330,
-      rangeWLTP: 385,
-      chargeTime: 26,
-      serviceCost: "~ 950 PLN / rok",
-      depreciation: "Średnie Ryzyko",
-      depreciationColor: "text-amber-700 bg-amber-50",
-      score: 7.8,
-      drive: "AWD (4x4)",
-      desc: "Elektryczny hot-hatch oferujący niesamowite przyspieszenie w rewelacyjnej cenie."
-    },
-    {
-      id: 3,
-      brand: "Zeekr",
-      model: "001 Long Range",
-      price: "~ 275 000 PLN",
-      rangeReal: 540,
-      rangeWLTP: 620,
-      chargeTime: 28,
-      serviceCost: "~ 1 800 PLN / rok",
-      depreciation: "Niskie Ryzyko",
-      depreciationColor: "text-emerald-700 bg-emerald-50",
-      score: 9.1,
-      drive: "RWD (Tył)",
-      desc: "Luksusowy shooting brake o potężnym zasięgu i genialnym wykończeniu wnętrza."
+// Inicjalizacja połączenia z naszą bazą w chmurze
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Główna funkcja musi być teraz 'async', bo czeka na dane z bazy
+export default async function Home() {
+  
+  // Pobieramy dane z tabeli 'cars' i od razu doklejamy do nich informacje o marce z tabeli 'brands'
+  const { data: dbCars, error } = await supabase
+    .from('cars')
+    .select(`
+      *,
+      brands (
+        name,
+        service_network_score,
+        capital_score,
+        safety_score,
+        volume_score,
+        tech_score
+      )
+    `);
+
+  if (error) {
+    console.error("Błąd pobierania danych z Supabase:", error);
+  }
+
+  // Przetwarzamy surowe dane z bazy, używając naszego algorytmu reputacji
+  const cars = dbCars ? dbCars.map((car) => {
+    const brand = car.brands as any;
+    
+    // 1. Algorytm Reputacji (Średnia z 5 kategorii z bazy danych)
+    const totalScore = (brand.service_network_score + brand.capital_score + brand.safety_score + brand.volume_score + brand.tech_score) / 5;
+    
+    // Zamiana skali 0-100 na ocenę portalową 0-10 (np. 85 -> 8.5)
+    const score10 = (totalScore / 10).toFixed(1);
+
+    // 2. Automatyczna ocena utraty wartości bazująca na Reputacji
+    let depreciation = "Wysokie Ryzyko";
+    let depreciationColor = "text-rose-700 bg-rose-50";
+    
+    if (totalScore >= 80) {
+      depreciation = "Niskie Ryzyko";
+      depreciationColor = "text-emerald-700 bg-emerald-50";
+    } else if (totalScore >= 60) {
+      depreciation = "Średnie Ryzyko";
+      depreciationColor = "text-amber-700 bg-amber-50";
     }
-  ];
+
+    // Pakujemy dane dla naszego gotowego interfejsu
+    return {
+      id: car.id,
+      brand: brand.name,
+      model: car.model,
+      price: `~ ${car.price_katalog_pln?.toLocaleString('pl-PL')} PLN`,
+      rangeReal: car.range_real_km,
+      rangeWLTP: car.range_wltp_km,
+      chargeTime: car.charge_time_min,
+      serviceCost: `~ ${car.service_cost_annual_pln} PLN / rok`,
+      depreciation: depreciation,
+      depreciationColor: depreciationColor,
+      score: score10,
+      drive: car.drive_type,
+      desc: car.warranty_desc || "Brak dodatkowego opisu",
+    };
+  }) : [];
 
   return (
     <main className="min-h-screen bg-gray-50 text-gray-900 font-sans">
@@ -63,7 +82,7 @@ export default function Home() {
       </section>
 
       <div className="max-w-7xl mx-auto px-6 -mt-8 relative z-10">
-        {/* Panel Filtrów */}
+        {/* Panel Filtrów (Zostawiamy makietę na przyszłość) */}
         <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-12">
           <h2 className="text-lg font-bold mb-4">Znajdź model dla siebie</h2>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -74,7 +93,6 @@ export default function Home() {
                 <option>Wszystkie marki</option>
                 <option>BYD</option>
                 <option>MG</option>
-                <option>Nio</option>
                 <option>Zeekr</option>
               </select>
             </div>
@@ -107,19 +125,26 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Sekcja: Katalog */}
+        {/* Sekcja: Katalog dynamiczny */}
         <div className="flex justify-between items-end mb-6">
           <h2 className="text-2xl font-bold">Katalog Pojazdów</h2>
-          <span className="text-sm text-gray-500 hidden md:block">Znaleziono: {cars.length}</span>
+          <span className="text-sm text-gray-500 hidden md:block">Znaleziono w bazie: {cars.length}</span>
         </div>
         
+        {/* Jeśli baza jest pusta lub klucze są złe, pokazujemy komunikat */}
+        {cars.length === 0 && (
+          <div className="bg-white p-10 text-center rounded-2xl border border-gray-200 mb-20">
+            <p className="text-gray-500">Brak pojazdów w bazie danych lub trwa ładowanie...</p>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-20">
           
           {cars.map((car) => (
             <div key={car.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col">
               
               <div className="h-52 bg-slate-100 flex items-center justify-center relative border-b border-gray-100">
-                <span className="text-slate-400 font-medium">Zdjęcie API: {car.brand} {car.model}</span>
+                <span className="text-slate-400 font-medium">Zdjęcie z Bazy: {car.brand} {car.model}</span>
                 <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold shadow-sm">
                   {car.drive}
                 </div>
@@ -138,7 +163,7 @@ export default function Home() {
                 
                 <p className="text-gray-500 text-sm mb-6 pb-4 border-b border-gray-100 flex-grow">{car.desc}</p>
                 
-                {/* Parametry z API i algorytmy */}
+                {/* Parametry połączone z bazą Supabase */}
                 <div className="space-y-3 mb-6">
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Szacowana cena:</span>
@@ -164,7 +189,6 @@ export default function Home() {
                   </div>
                 </div>
                 
-                {/* Działający przycisk linkujący */}
                 <Link 
                   href={`/auto/${car.id}`} 
                   className="w-full bg-slate-900 text-white py-3 rounded-xl font-semibold hover:bg-slate-800 transition-colors mt-auto text-center block"
