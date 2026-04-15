@@ -1,206 +1,185 @@
-import Link from 'next/link';
-import { createClient } from '@supabase/supabase-js';
+"use client";
 
-// Inicjalizacja połączenia z naszą bazą w chmurze
+import { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
+import Link from 'next/link'; // NOWOŚĆ: Importujemy Link z Next.js
+
+// Inicjalizacja połączenia z bazy
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-// Główna funkcja musi być teraz 'async', bo czeka na dane z bazy
-export default async function Home() {
-  
-  // Pobieramy dane z tabeli 'cars' i od razu doklejamy do nich informacje o marce z tabeli 'brands'
-  const { data: dbCars, error } = await supabase
-    .from('cars')
-    .select(`
-      *,
-      brands (
-        name,
-        service_network_score,
-        capital_score,
-        safety_score,
-        volume_score,
-        tech_score
-      )
-    `);
+export default function HomePage() {
+  const [cars, setCars] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  if (error) {
-    console.error("Błąd pobierania danych z Supabase:", error);
-  }
+  // Stany dla filtrów
+  const [selectedBrand, setSelectedBrand] = useState('Wszystkie marki');
+  const [maxPrice, setMaxPrice] = useState('Dowolna');
+  const [driveType, setDriveType] = useState('Wszystkie');
 
-  // Przetwarzamy surowe dane z bazy, używając naszego algorytmu reputacji
-  const cars = dbCars ? dbCars.map((car) => {
-    const brand = car.brands as any;
-    
-    // 1. Algorytm Reputacji (Średnia z 5 kategorii z bazy danych)
-    const totalScore = (brand.service_network_score + brand.capital_score + brand.safety_score + brand.volume_score + brand.tech_score) / 5;
-    
-    // Zamiana skali 0-100 na ocenę portalową 0-10 (np. 85 -> 8.5)
-    const score10 = (totalScore / 10).toFixed(1);
+  useEffect(() => {
+    fetchData();
+  }, []);
 
-    // 2. Automatyczna ocena utraty wartości bazująca na Reputacji
-    let depreciation = "Wysokie Ryzyko";
-    let depreciationColor = "text-rose-700 bg-rose-50";
+  const fetchData = async () => {
+    setLoading(true);
+    const { data: carsData } = await supabase.from('cars').select('*').order('created_at', { ascending: false });
+    const { data: brandsData } = await supabase.from('brands').select('*');
     
-    if (totalScore >= 80) {
-      depreciation = "Niskie Ryzyko";
-      depreciationColor = "text-emerald-700 bg-emerald-50";
-    } else if (totalScore >= 60) {
-      depreciation = "Średnie Ryzyko";
-      depreciationColor = "text-amber-700 bg-amber-50";
+    if (carsData) setCars(carsData);
+    if (brandsData) setBrands(brandsData);
+    setLoading(false);
+  };
+
+  const calculateBrandScore = (brandId: number) => {
+    const brand = brands.find(b => b.id === brandId);
+    if (!brand) return { score: 0, risk: 'Nieznane', color: 'bg-slate-100 text-slate-800' };
+
+    const average = (brand.service_network_score + brand.capital_score + brand.safety_score + brand.volume_score + brand.tech_score) / 5;
+    const score10 = (average / 10).toFixed(1);
+
+    if (average >= 75) return { score: score10, risk: 'Niskie Ryzyko', color: 'bg-emerald-100 text-emerald-800' };
+    if (average >= 50) return { score: score10, risk: 'Średnie Ryzyko', color: 'bg-amber-100 text-amber-800' };
+    return { score: score10, risk: 'Wysokie Ryzyko', color: 'bg-rose-100 text-rose-800' };
+  };
+
+  const filteredCars = cars.filter(car => {
+    const brand = brands.find(b => b.id === car.brand_id);
+    if (selectedBrand !== 'Wszystkie marki' && brand?.name !== selectedBrand) return false;
+    if (driveType !== 'Wszystkie' && car.drive_type !== driveType) return false;
+    if (maxPrice !== 'Dowolna') {
+      const limit = parseInt(maxPrice);
+      if (car.price_katalog_eur > limit) return false;
     }
-
-    // Pakujemy dane dla naszego gotowego interfejsu
-    return {
-      id: car.id,
-      brand: brand.name,
-      model: car.model,
-      price: `~ ${car.price_katalog_pln?.toLocaleString('pl-PL')} PLN`,
-      rangeReal: car.range_real_km,
-      rangeWLTP: car.range_wltp_km,
-      chargeTime: car.charge_time_min,
-      serviceCost: `~ ${car.service_cost_annual_pln} PLN / rok`,
-      depreciation: depreciation,
-      depreciationColor: depreciationColor,
-      score: score10,
-      drive: car.drive_type,
-      desc: car.warranty_desc || "Brak dodatkowego opisu",
-    };
-  }) : [];
+    return true;
+  });
 
   return (
-    <main className="min-h-screen bg-gray-50 text-gray-900 font-sans">
+    <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-900 pb-20">
       
-      {/* Nagłówek (Hero Section) */}
-      <section className="bg-gradient-to-r from-blue-900 to-slate-800 text-white py-20 px-6 text-center">
-        <h1 className="text-4xl md:text-5xl font-extrabold mb-6 tracking-tight">
-          Chińskie Elektryki <br className="md:hidden" /> Bez Tajemnic
-        </h1>
-        <p className="text-lg md:text-xl max-w-2xl mx-auto mb-10 text-blue-100">
-          Zautomatyzowane recenzje, algorytmiczna analiza utraty wartości i prawdziwe zasięgi. Wybierz świadomie.
+      <header className="bg-[#1e222d] text-white pt-16 pb-32 px-6 text-center">
+        <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">Poznaj chińskie elektryki</h1>
+        <p className="text-lg text-slate-400 max-w-2xl mx-auto">
+          Zanim kupisz, sprawdź prawdziwe zasięgi, koszty serwisu i wskaźnik utraty wartości. Wybieraj świadomie.
         </p>
-      </section>
+      </header>
 
-      <div className="max-w-7xl mx-auto px-6 -mt-8 relative z-10">
-        {/* Panel Filtrów (Zostawiamy makietę na przyszłość) */}
-        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 mb-12">
-          <h2 className="text-lg font-bold mb-4">Znajdź model dla siebie</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            
-            <div className="flex flex-col">
-              <label className="text-xs text-gray-500 font-semibold mb-1 uppercase">Marka</label>
-              <select className="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
-                <option>Wszystkie marki</option>
-                <option>BYD</option>
-                <option>MG</option>
-                <option>Zeekr</option>
+      <main className="max-w-6xl mx-auto px-4 -mt-20">
+        
+        <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8 mb-12 border border-slate-100">
+          <h2 className="text-xl font-bold mb-6 text-slate-800">Znajdź model dla siebie</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Marka</label>
+              <select value={selectedBrand} onChange={(e) => setSelectedBrand(e.target.value)} className="w-full p-3 border border-slate-200 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition">
+                <option value="Wszystkie marki">Wszystkie marki</option>
+                {brands.map(b => (<option key={b.id} value={b.name}>{b.name}</option>))}
               </select>
             </div>
-
-            <div className="flex flex-col">
-              <label className="text-xs text-gray-500 font-semibold mb-1 uppercase">Maksymalna Cena</label>
-              <select className="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
-                <option>Dowolna</option>
-                <option>do 150 000 PLN</option>
-                <option>do 200 000 PLN</option>
-                <option>do 250 000 PLN</option>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Maksymalna Cena (EUR)</label>
+              <select value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} className="w-full p-3 border border-slate-200 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition">
+                <option value="Dowolna">Dowolna</option>
+                <option value="30000">do 30 000 €</option>
+                <option value="45000">do 45 000 €</option>
+                <option value="60000">do 60 000 €</option>
+                <option value="80000">do 80 000 €</option>
               </select>
             </div>
-
-            <div className="flex flex-col">
-              <label className="text-xs text-gray-500 font-semibold mb-1 uppercase">Napęd</label>
-              <select className="bg-gray-50 border border-gray-200 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5">
-                <option>Wszystkie</option>
-                <option>RWD (Na tył)</option>
-                <option>AWD (4x4)</option>
+            <div>
+              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Napęd</label>
+              <select value={driveType} onChange={(e) => setDriveType(e.target.value)} className="w-full p-3 border border-slate-200 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition">
+                <option value="Wszystkie">Wszystkie</option>
+                <option value="RWD (Na tył)">RWD (Na tył)</option>
+                <option value="AWD (4x4)">AWD (4x4)</option>
+                <option value="FWD (Na przód)">FWD (Na przód)</option>
               </select>
             </div>
-
-            <div className="flex items-end">
-              <button className="w-full bg-blue-600 text-white font-bold py-2.5 rounded-lg hover:bg-blue-700 transition shadow-sm">
-                Szukaj
-              </button>
-            </div>
-
           </div>
         </div>
 
-        {/* Sekcja: Katalog dynamiczny */}
         <div className="flex justify-between items-end mb-6">
-          <h2 className="text-2xl font-bold">Katalog Pojazdów</h2>
-          <span className="text-sm text-gray-500 hidden md:block">Znaleziono w bazie: {cars.length}</span>
+          <h2 className="text-2xl font-black text-slate-800">Katalog Pojazdów</h2>
+          <span className="text-sm text-slate-500 font-medium">Znaleziono: {filteredCars.length}</span>
         </div>
-        
-        {/* Jeśli baza jest pusta lub klucze są złe, pokazujemy komunikat */}
-        {cars.length === 0 && (
-          <div className="bg-white p-10 text-center rounded-2xl border border-gray-200 mb-20">
-            <p className="text-gray-500">Brak pojazdów w bazie danych lub trwa ładowanie...</p>
+
+        {loading ? (
+          <div className="text-center py-20 text-slate-500 font-bold animate-pulse">Ładowanie bazy pojazdów...</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredCars.map((car) => {
+              const brand = brands.find(b => b.id === car.brand_id);
+              const reputation = calculateBrandScore(car.brand_id);
+
+              return (
+                <div key={car.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl transition-shadow duration-300 overflow-hidden flex flex-col relative group">
+                  
+                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur border border-slate-200 text-slate-800 text-[10px] font-black uppercase px-2.5 py-1 rounded-full z-10 shadow-sm">
+                    {car.drive_type}
+                  </div>
+
+                  <div className="h-56 bg-slate-100 relative overflow-hidden group-hover:bg-slate-200 transition-colors">
+                    {car.image_url ? (
+                      <img src={car.image_url} alt={`${brand?.name} ${car.model}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-400 font-medium text-sm">Brak zdjęcia</div>
+                    )}
+                  </div>
+
+                  <div className="p-6 flex-1 flex flex-col">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <div className="text-blue-600 text-xs font-black uppercase tracking-wider mb-1">{brand?.name}</div>
+                        <h3 className="text-xl font-black text-slate-900 leading-tight">{car.model}</h3>
+                      </div>
+                      <div className={`px-2.5 py-1 rounded font-black text-sm border ${reputation.color.replace('bg-', 'border-').replace('100', '200')} ${reputation.color}`}>
+                        {reputation.score}
+                      </div>
+                    </div>
+
+                    <div className="space-y-3 mb-6 flex-1">
+                      <div className="flex justify-between items-center text-sm border-b border-slate-100 pb-2">
+                        <span className="text-slate-500">Cena ok:</span>
+                        <strong className="text-slate-900">
+                          {car.price_katalog_eur ? `~ ${car.price_katalog_eur.toLocaleString('pl-PL')} €` : 'Brak danych'}
+                        </strong>
+                      </div>
+                      <div className="flex justify-between items-center text-sm border-b border-slate-100 pb-2">
+                        <span className="text-slate-500">Zasięg (Real / WLTP):</span>
+                        <strong className="text-slate-900">{car.range_real_km} <span className="text-slate-400 font-normal">/ {car.range_wltp_km} km</span></strong>
+                      </div>
+                      <div className="flex justify-between items-center text-sm border-b border-slate-100 pb-2">
+                        <span className="text-slate-500">Ładowanie DC:</span>
+                        <strong className="text-slate-900">{car.charge_time_min} min</strong>
+                      </div>
+                      <div className="flex justify-between items-center text-sm border-b border-slate-100 pb-2">
+                        <span className="text-slate-500">Utrata wartości:</span>
+                        <strong className={`text-[11px] uppercase tracking-wider px-2 py-0.5 rounded font-bold ${reputation.color}`}>
+                          {reputation.risk}
+                        </strong>
+                      </div>
+                    </div>
+
+                    {/* NOWOŚĆ: Link zamiast buttona */}
+                    <Link href={`/auto/${car.id}`} className="block w-full text-center bg-[#1e222d] text-white font-bold py-3.5 rounded-xl hover:bg-blue-600 transition-colors shadow-sm">
+                      Pełny raport
+                    </Link>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 pb-20">
-          
-          {cars.map((car) => (
-            <div key={car.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col">
-              
-              <div className="h-52 bg-slate-100 flex items-center justify-center relative border-b border-gray-100">
-                <span className="text-slate-400 font-medium">Zdjęcie z Bazy: {car.brand} {car.model}</span>
-                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold shadow-sm">
-                  {car.drive}
-                </div>
-              </div>
-              
-              <div className="p-6 flex flex-col flex-grow">
-                <div className="flex justify-between items-start mb-2">
-                  <div>
-                    <p className="text-xs text-blue-600 font-bold uppercase tracking-wider mb-1">{car.brand}</p>
-                    <h3 className="text-xl font-black leading-tight">{car.model}</h3>
-                  </div>
-                  <div className="bg-emerald-100 text-emerald-800 flex flex-col items-center justify-center w-10 h-10 rounded-lg font-bold text-sm shadow-sm">
-                    {car.score}
-                  </div>
-                </div>
-                
-                <p className="text-gray-500 text-sm mb-6 pb-4 border-b border-gray-100 flex-grow">{car.desc}</p>
-                
-                {/* Parametry połączone z bazą Supabase */}
-                <div className="space-y-3 mb-6">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Szacowana cena:</span>
-                    <span className="font-bold text-base">{car.price}</span>
-                  </div>
-                  <div className="flex justify-between text-sm items-center">
-                    <span className="text-gray-500">Zasięg (Realny / WLTP):</span>
-                    <span className="font-semibold">{car.rangeReal} km / <span className="text-gray-400">{car.rangeWLTP} km</span></span>
-                  </div>
-                  <div className="flex justify-between text-sm items-center">
-                    <span className="text-gray-500">Ładowanie 10-80%:</span>
-                    <span className="font-semibold">{car.chargeTime} min</span>
-                  </div>
-                  <div className="flex justify-between text-sm items-center">
-                    <span className="text-gray-500">Koszty serwisu:</span>
-                    <span className="font-semibold">{car.serviceCost}</span>
-                  </div>
-                  <div className="flex justify-between text-sm items-center">
-                    <span className="text-gray-500">Utrata wartości:</span>
-                    <span className={`font-semibold px-2 py-0.5 rounded text-xs ${car.depreciationColor}`}>
-                      {car.depreciation}
-                    </span>
-                  </div>
-                </div>
-                
-                <Link 
-                  href={`/auto/${car.id}`} 
-                  className="w-full bg-slate-900 text-white py-3 rounded-xl font-semibold hover:bg-slate-800 transition-colors mt-auto text-center block"
-                >
-                  Pełny raport
-                </Link>
-              </div>
-            </div>
-          ))}
-
-        </div>
-      </div>
-    </main>
+        {!loading && filteredCars.length === 0 && (
+          <div className="text-center py-20 bg-white rounded-2xl border border-slate-200">
+            <h3 className="text-lg font-bold text-slate-800 mb-2">Brak wyników</h3>
+            <p className="text-slate-500">Spróbuj zmienić kryteria wyszukiwania.</p>
+          </div>
+        )}
+      </main>
+    </div>
   );
 }
