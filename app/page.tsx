@@ -2,183 +2,285 @@
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
-import Link from 'next/link'; // NOWOŚĆ: Importujemy Link z Next.js
+import Link from 'next/link';
 
-// Inicjalizacja połączenia z bazy
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export default function HomePage() {
-  const [cars, setCars] = useState<any[]>([]);
-  const [brands, setBrands] = useState<any[]>([]);
+  const [banners, setBanners] = useState<any[]>([]);
+  const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Stany dla filtrów
-  const [selectedBrand, setSelectedBrand] = useState('Wszystkie marki');
-  const [maxPrice, setMaxPrice] = useState('Dowolna');
-  const [driveType, setDriveType] = useState('Wszystkie');
+  const [currentBannerIndex, setCurrentBannerIndex] = useState(0);
+  
+  const [selectedCategory, setSelectedCategory] = useState<string>('Wszystkie');
+  
+  // NOWOŚĆ: Stan określający ile artykułów widać na start
+  const [visibleCount, setVisibleCount] = useState(6); 
 
   useEffect(() => {
     fetchData();
   }, []);
 
+  useEffect(() => {
+    if (banners.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentBannerIndex((prev) => (prev === banners.length - 1 ? 0 : prev + 1));
+    }, 6000);
+    return () => clearInterval(interval);
+  }, [banners]);
+
   const fetchData = async () => {
     setLoading(true);
-    const { data: carsData } = await supabase.from('cars').select('*').order('created_at', { ascending: false });
-    const { data: brandsData } = await supabase.from('brands').select('*');
     
-    if (carsData) setCars(carsData);
-    if (brandsData) setBrands(brandsData);
+    const { data: bannersData } = await supabase
+      .from('banners')
+      .select('*')
+      .eq('is_active', true)
+      .order('created_at', { ascending: false });
+      
+    // Pobieramy wszystkie, ale na froncie wyświetlimy tylko "visibleCount"
+    const { data: postsData } = await supabase
+      .from('posts')
+      .select('*')
+      .eq('is_published', true)
+      .order('created_at', { ascending: false });
+      
+    if (bannersData) setBanners(bannersData);
+    if (postsData) setPosts(postsData);
+    
     setLoading(false);
   };
 
-  const calculateBrandScore = (brandId: number) => {
-    const brand = brands.find(b => b.id === brandId);
-    if (!brand) return { score: 0, risk: 'Nieznane', color: 'bg-slate-100 text-slate-800' };
+  const categories = ['Wszystkie', ...Array.from(new Set(posts.map(p => p.category).filter(Boolean)))];
 
-    const average = (brand.service_network_score + brand.capital_score + brand.safety_score + brand.volume_score + brand.tech_score) / 5;
-    const score10 = (average / 10).toFixed(1);
+  const displayedPosts = selectedCategory === 'Wszystkie' 
+    ? posts 
+    : posts.filter(p => p.category === selectedCategory);
 
-    if (average >= 75) return { score: score10, risk: 'Niskie Ryzyko', color: 'bg-emerald-100 text-emerald-800' };
-    if (average >= 50) return { score: score10, risk: 'Średnie Ryzyko', color: 'bg-amber-100 text-amber-800' };
-    return { score: score10, risk: 'Wysokie Ryzyko', color: 'bg-rose-100 text-rose-800' };
+  // Zmienne do obsługi przycisku "Załaduj więcej"
+  const postsToShow = displayedPosts.slice(0, visibleCount);
+  const hasMorePosts = visibleCount < displayedPosts.length;
+
+  const handleCategoryChange = (cat: string) => {
+    setSelectedCategory(cat);
+    setVisibleCount(6); // Resetujemy licznik do 6 przy zmianie kategorii
   };
 
-  const filteredCars = cars.filter(car => {
-    const brand = brands.find(b => b.id === car.brand_id);
-    if (selectedBrand !== 'Wszystkie marki' && brand?.name !== selectedBrand) return false;
-    if (driveType !== 'Wszystkie' && car.drive_type !== driveType) return false;
-    if (maxPrice !== 'Dowolna') {
-      const limit = parseInt(maxPrice);
-      if (car.price_katalog_eur > limit) return false;
-    }
-    return true;
-  });
+  const loadMorePosts = () => {
+    setVisibleCount(prev => prev + 6); // Dokładamy kolejne 6 wpisów
+  };
 
   return (
     <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-900 pb-20">
       
-      <header className="bg-[#1e222d] text-white pt-16 pb-32 px-6 text-center">
-        <h1 className="text-4xl md:text-5xl font-black tracking-tight mb-4">Poznaj chińskie elektryki</h1>
-        <p className="text-lg text-slate-400 max-w-2xl mx-auto">
-          Zanim kupisz, sprawdź prawdziwe zasięgi, koszty serwisu i wskaźnik utraty wartości. Wybieraj świadomie.
-        </p>
-      </header>
+      {/* GLOBALNA NAWIGACJA */}
+      <nav className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+          <Link href="/" className="font-black text-xl text-slate-800 tracking-tight">
+            EV<span className="text-blue-600">Report</span>
+          </Link>
+          <div className="flex gap-6 items-center">
+            <Link href="/" className="text-sm font-bold text-blue-600">Baza Wiedzy</Link>
+            <Link href="/katalog" className="text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg transition shadow-sm">
+              Katalog Aut
+            </Link>
+          </div>
+        </div>
+      </nav>
 
-      <main className="max-w-6xl mx-auto px-4 -mt-20">
+      {/* INTELIGENTNA KARUZELA BANERÓW */}
+      <section className="relative w-full h-[500px] md:h-[600px] bg-[#1e222d] overflow-hidden">
+        {loading ? (
+          <div className="w-full h-full flex items-center justify-center text-slate-500 font-bold animate-pulse">
+            Ładowanie mediów...
+          </div>
+        ) : banners.length > 0 ? (
+          <>
+            {banners.map((banner, index) => (
+              <div 
+                key={banner.id} 
+                className={`absolute inset-0 transition-opacity duration-1000 ${index === currentBannerIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+              >
+                <div className="absolute inset-0 bg-gradient-to-t from-[#1e222d] via-[#1e222d]/60 to-transparent z-10"></div>
+                
+                {banner.media_type === 'video' ? (
+                  <video 
+                    src={banner.media_url} 
+                    autoPlay 
+                    loop 
+                    muted 
+                    playsInline 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <img 
+                    src={banner.media_url} 
+                    alt={banner.title} 
+                    className="w-full h-full object-cover"
+                  />
+                )}
+
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-end pb-24 px-4 text-center">
+                  {banner.title && (
+                    <h2 className="text-4xl md:text-6xl font-black text-white mb-6 tracking-tight drop-shadow-lg max-w-4xl">
+                      {banner.title}
+                    </h2>
+                  )}
+                  {banner.target_url && (
+                    <Link href={banner.target_url} className="px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-500 transition shadow-xl text-lg">
+                      Sprawdź szczegóły
+                    </Link>
+                  )}
+                </div>
+              </div>
+            ))}
+
+            {banners.length > 1 && (
+              <div className="absolute bottom-8 left-0 right-0 z-30 flex justify-center gap-3">
+                {banners.map((_, idx) => (
+                  <button 
+                    key={idx}
+                    onClick={() => setCurrentBannerIndex(idx)}
+                    className={`w-3 h-3 rounded-full transition-all ${idx === currentBannerIndex ? 'bg-blue-500 w-8' : 'bg-white/50 hover:bg-white'}`}
+                    aria-label={`Przejdź do banera ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="w-full h-full flex flex-col items-center justify-center text-center px-4 relative">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-blue-600/20 blur-[100px] rounded-full pointer-events-none"></div>
+            <div className="relative z-10">
+              <h1 className="text-4xl md:text-6xl font-black text-white mb-4 tracking-tight">Kupujesz elektryka z Chin?</h1>
+              <p className="text-xl text-slate-400 max-w-2xl mx-auto mb-8">Poznaj fakty, zignoruj mity. Analizy utraty wartości, testy realnego zasięgu i pełne zestawienia TCO.</p>
+              <Link href="/katalog" className="px-8 py-4 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-500 transition shadow-lg text-lg">
+                Przejdź do Katalogu
+              </Link>
+            </div>
+          </div>
+        )}
+      </section>
+
+      <main className="max-w-6xl mx-auto px-4 mt-16">
         
-        <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8 mb-12 border border-slate-100">
-          <h2 className="text-xl font-bold mb-6 text-slate-800">Znajdź model dla siebie</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div>
-              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Marka</label>
-              <select value={selectedBrand} onChange={(e) => setSelectedBrand(e.target.value)} className="w-full p-3 border border-slate-200 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition">
-                <option value="Wszystkie marki">Wszystkie marki</option>
-                {brands.map(b => (<option key={b.id} value={b.name}>{b.name}</option>))}
-              </select>
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Maksymalna Cena (EUR)</label>
-              <select value={maxPrice} onChange={(e) => setMaxPrice(e.target.value)} className="w-full p-3 border border-slate-200 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition">
-                <option value="Dowolna">Dowolna</option>
-                <option value="30000">do 30 000 €</option>
-                <option value="45000">do 45 000 €</option>
-                <option value="60000">do 60 000 €</option>
-                <option value="80000">do 80 000 €</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Napęd</label>
-              <select value={driveType} onChange={(e) => setDriveType(e.target.value)} className="w-full p-3 border border-slate-200 rounded-lg bg-slate-50 focus:ring-2 focus:ring-blue-500 outline-none transition">
-                <option value="Wszystkie">Wszystkie</option>
-                <option value="RWD (Na tył)">RWD (Na tył)</option>
-                <option value="AWD (4x4)">AWD (4x4)</option>
-                <option value="FWD (Na przód)">FWD (Na przód)</option>
-              </select>
-            </div>
+        <div className="flex flex-col md:flex-row md:justify-between md:items-end mb-8 gap-4">
+          <div>
+            <h2 className="text-3xl font-black text-slate-800 tracking-tight">Najnowsze Wiadomości i Poradniki</h2>
+            <p className="text-slate-500 mt-2">Bądź na bieżąco z rynkiem elektromobilności i programami dopłat.</p>
           </div>
         </div>
 
-        <div className="flex justify-between items-end mb-6">
-          <h2 className="text-2xl font-black text-slate-800">Katalog Pojazdów</h2>
-          <span className="text-sm text-slate-500 font-medium">Znaleziono: {filteredCars.length}</span>
-        </div>
+        {/* INTERAKTYWNY PASEK KATEGORII */}
+        {!loading && posts.length > 0 && (
+          <div className="flex gap-2 overflow-x-auto pb-4 mb-8 custom-scrollbar">
+            {categories.map(cat => (
+              <button
+                key={cat}
+                onClick={() => handleCategoryChange(cat as string)}
+                className={`whitespace-nowrap px-6 py-2.5 rounded-full text-sm font-bold transition-all duration-300 ${
+                  selectedCategory === cat
+                    ? 'bg-blue-600 text-white shadow-md'
+                    : 'bg-white border border-slate-200 text-slate-600 hover:border-blue-300 hover:text-blue-600 shadow-sm'
+                }`}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+        )}
 
+        {/* SIATKA ARTYKUŁÓW */}
         {loading ? (
-          <div className="text-center py-20 text-slate-500 font-bold animate-pulse">Ładowanie bazy pojazdów...</div>
-        ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredCars.map((car) => {
-              const brand = brands.find(b => b.id === car.brand_id);
-              const reputation = calculateBrandScore(car.brand_id);
-
-              return (
-                <div key={car.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm hover:shadow-xl transition-shadow duration-300 overflow-hidden flex flex-col relative group">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="h-96 bg-slate-200 animate-pulse rounded-2xl"></div>
+            ))}
+          </div>
+        ) : displayedPosts.length > 0 ? (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {/* Używamy postsToShow zamiast displayedPosts */}
+              {postsToShow.map(post => (
+                <article key={post.id} className="bg-white rounded-3xl border border-slate-200 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col group">
                   
-                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur border border-slate-200 text-slate-800 text-[10px] font-black uppercase px-2.5 py-1 rounded-full z-10 shadow-sm">
-                    {car.drive_type}
-                  </div>
-
-                  <div className="h-56 bg-slate-100 relative overflow-hidden group-hover:bg-slate-200 transition-colors">
-                    {car.image_url ? (
-                      <img src={car.image_url} alt={`${brand?.name} ${car.model}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                  <div className="h-56 bg-slate-100 relative overflow-hidden">
+                    {post.cover_image ? (
+                      <img 
+                        src={post.cover_image} 
+                        alt={post.title} 
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                      />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center text-slate-400 font-medium text-sm">Brak zdjęcia</div>
+                      <div className="w-full h-full flex items-center justify-center text-slate-400 font-medium">Brak okładki</div>
+                    )}
+                    
+                    {post.category && (
+                      <div className="absolute top-4 left-4 bg-white/90 backdrop-blur text-blue-700 text-[10px] font-black uppercase px-3 py-1.5 rounded-full shadow-sm">
+                        {post.category}
+                      </div>
                     )}
                   </div>
 
-                  <div className="p-6 flex-1 flex flex-col">
-                    <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <div className="text-blue-600 text-xs font-black uppercase tracking-wider mb-1">{brand?.name}</div>
-                        <h3 className="text-xl font-black text-slate-900 leading-tight">{car.model}</h3>
-                      </div>
-                      <div className={`px-2.5 py-1 rounded font-black text-sm border ${reputation.color.replace('bg-', 'border-').replace('100', '200')} ${reputation.color}`}>
-                        {reputation.score}
-                      </div>
+                  <div className="p-6 md:p-8 flex-1 flex flex-col">
+                    <div className="text-xs text-slate-400 font-bold mb-3 uppercase tracking-wider">
+                      {new Date(post.created_at).toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' })}
                     </div>
-
-                    <div className="space-y-3 mb-6 flex-1">
-                      <div className="flex justify-between items-center text-sm border-b border-slate-100 pb-2">
-                        <span className="text-slate-500">Cena ok:</span>
-                        <strong className="text-slate-900">
-                          {car.price_katalog_eur ? `~ ${car.price_katalog_eur.toLocaleString('pl-PL')} €` : 'Brak danych'}
-                        </strong>
-                      </div>
-                      <div className="flex justify-between items-center text-sm border-b border-slate-100 pb-2">
-                        <span className="text-slate-500">Zasięg (Real / WLTP):</span>
-                        <strong className="text-slate-900">{car.range_real_km} <span className="text-slate-400 font-normal">/ {car.range_wltp_km} km</span></strong>
-                      </div>
-                      <div className="flex justify-between items-center text-sm border-b border-slate-100 pb-2">
-                        <span className="text-slate-500">Ładowanie DC:</span>
-                        <strong className="text-slate-900">{car.charge_time_min} min</strong>
-                      </div>
-                      <div className="flex justify-between items-center text-sm border-b border-slate-100 pb-2">
-                        <span className="text-slate-500">Utrata wartości:</span>
-                        <strong className={`text-[11px] uppercase tracking-wider px-2 py-0.5 rounded font-bold ${reputation.color}`}>
-                          {reputation.risk}
-                        </strong>
-                      </div>
-                    </div>
-
-                    {/* NOWOŚĆ: Link zamiast buttona */}
-                    <Link href={`/auto/${car.id}`} className="block w-full text-center bg-[#1e222d] text-white font-bold py-3.5 rounded-xl hover:bg-blue-600 transition-colors shadow-sm">
-                      Pełny raport
+                    
+                    <h3 className="text-xl font-black text-slate-900 leading-tight mb-4 group-hover:text-blue-600 transition-colors">
+                      {post.title}
+                    </h3>
+                    
+                    <p className="text-slate-600 text-sm leading-relaxed mb-6 flex-1 line-clamp-3">
+                      {post.excerpt}
+                    </p>
+                    
+                    <Link href={`/artykul/${post.slug}`} className="inline-flex items-center text-sm font-black text-blue-600 hover:text-blue-800 transition-colors">
+                      Czytaj dalej 
+                      <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
                     </Link>
                   </div>
-                </div>
-              );
-            })}
+                </article>
+              ))}
+            </div>
+
+            {/* PRZYCISK "ZAŁADUJ WIĘCEJ" */}
+            {hasMorePosts && (
+              <div className="mt-12 text-center">
+                <button 
+                  onClick={loadMorePosts}
+                  className="px-8 py-3.5 bg-white border-2 border-slate-200 text-slate-700 font-bold rounded-xl hover:border-blue-500 hover:text-blue-600 transition-colors shadow-sm"
+                >
+                  Pokaż więcej wpisów
+                </button>
+              </div>
+            )}
+          </>
+        ) : (
+          <div className="text-center py-20 bg-white rounded-3xl border border-slate-200">
+            <h3 className="text-xl font-bold text-slate-800 mb-2">Brak artykułów w tej kategorii</h3>
+            <p className="text-slate-500">Nie opublikowano jeszcze żadnych wpisów pasujących do tego filtru.</p>
           </div>
         )}
 
-        {!loading && filteredCars.length === 0 && (
-          <div className="text-center py-20 bg-white rounded-2xl border border-slate-200">
-            <h3 className="text-lg font-bold text-slate-800 mb-2">Brak wyników</h3>
-            <p className="text-slate-500">Spróbuj zmienić kryteria wyszukiwania.</p>
+        {/* SEKCJA CALL TO ACTION (CTA) */}
+        <div className="bg-gradient-to-br from-blue-600 to-indigo-700 rounded-3xl p-10 md:p-16 text-center text-white mt-20 mb-12 shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 -translate-y-1/2 translate-x-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+          <div className="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/4 w-96 h-96 bg-black/10 rounded-full blur-3xl pointer-events-none"></div>
+          
+          <div className="relative z-10">
+            <h2 className="text-3xl md:text-4xl font-black mb-6">Gotowy na analizę konkretnego modelu?</h2>
+            <p className="text-blue-100 mb-8 max-w-2xl mx-auto text-lg">
+              W naszym katalogu znajdziesz nie tylko suche dane techniczne, ale również wyliczany przez nas unikalny wskaźnik utraty wartości (RV), oparty na zaawansowanej analityce.
+            </p>
+            <Link href="/katalog" className="inline-block bg-white text-blue-700 font-black px-10 py-4 rounded-xl hover:bg-slate-50 transition shadow-lg text-lg hover:scale-105 transform duration-300">
+              Przeszukaj Baze Aut
+            </Link>
           </div>
-        )}
+        </div>
+
       </main>
     </div>
   );
