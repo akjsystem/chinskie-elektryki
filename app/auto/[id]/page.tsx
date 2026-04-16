@@ -44,7 +44,6 @@ export default function CarReportPage() {
     setLoading(false);
   };
 
-  // ZAKTUALIZOWANY ALGORYTM RV (Z uwzględnieniem 800V)
   const calculateRVScore = () => {
     if (!brand || !car) return { score: '0.0', risk: 'Brak danych', color: 'bg-slate-100 text-slate-800' };
 
@@ -79,6 +78,13 @@ export default function CarReportPage() {
     return { score: formattedScore, risk: 'Wysokie Ryzyko', color: 'bg-rose-100 text-rose-800 border-rose-200' };
   };
 
+  const getFuelEquivalent = () => {
+    if (!car || !car.battery_kwh || !car.range_real_km) return null;
+    const efficiencyKwhPer100 = (car.battery_kwh / car.range_real_km) * 100;
+    const litersEquivalent = efficiencyKwhPer100 / 8.9; 
+    return litersEquivalent.toFixed(1);
+  };
+
   const openGallery = (index: number) => { setCurrentImageIndex(index); setIsGalleryOpen(true); document.body.style.overflow = 'hidden'; };
   const closeGallery = () => { setIsGalleryOpen(false); document.body.style.overflow = 'auto'; };
   const nextImage = (e: any) => { e?.stopPropagation(); if (car?.gallery_urls) setCurrentImageIndex((prev) => (prev === car.gallery_urls.length - 1 ? 0 : prev + 1)); };
@@ -88,6 +94,7 @@ export default function CarReportPage() {
   if (!car || !brand) return <div className="min-h-screen flex flex-col items-center justify-center bg-[#f8fafc]"><h1 className="text-2xl font-bold mb-4">Nie znaleziono pojazdu</h1><Link href="/katalog" className="px-6 py-2 bg-blue-600 text-white rounded">Wróć</Link></div>;
 
   const rvData = calculateRVScore();
+  const fuelEq = getFuelEquivalent();
 
   return (
     <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-900 relative pb-20">
@@ -118,11 +125,23 @@ export default function CarReportPage() {
           </div>
           <div className="md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
             <div className="text-blue-600 text-sm font-black uppercase tracking-wider mb-2">{brand.name}</div>
-            <h1 className="text-4xl md:text-5xl font-black text-slate-900 leading-tight mb-6">{car.model}</h1>
+            <h1 className="text-4xl md:text-5xl font-black text-slate-900 leading-tight mb-8">{car.model}</h1>
             
-            <div className="text-slate-500 text-sm font-medium mb-1">Cena katalogowa</div>
-            <div className="text-3xl font-black text-slate-800 mb-8">
-              {car.price_katalog_eur ? `${car.price_katalog_eur.toLocaleString('pl-PL')} €` : 'Brak danych'}
+            <div className="flex flex-col sm:flex-row gap-6 mb-8">
+              <div>
+                <div className="text-slate-500 text-xs font-bold uppercase tracking-wider mb-1">Cena katalogowa</div>
+                <div className="text-3xl font-black text-slate-800">
+                  {car.price_katalog_eur ? `${car.price_katalog_eur.toLocaleString('pl-PL')} €` : 'Brak danych'}
+                </div>
+              </div>
+              
+              {/* NOWOŚĆ: BARDZO WIDOCZNY WSKAŹNIK SPALANIA */}
+              {fuelEq && (
+                <div className="bg-emerald-50 border-2 border-emerald-200 px-5 py-2.5 rounded-2xl">
+                  <div className="text-emerald-700 text-[10px] font-black uppercase tracking-wider mb-0.5">Spalanie (Ekwiwalent paliwa)</div>
+                  <div className="text-2xl font-black text-emerald-600">{fuelEq} <span className="text-sm font-bold">L / 100km</span></div>
+                </div>
+              )}
             </div>
 
             <div className={`p-5 border-2 rounded-2xl flex items-center justify-between shadow-sm ${rvData.color}`}>
@@ -231,7 +250,6 @@ export default function CarReportPage() {
                   <span className="text-xl font-black text-white">{car.architecture || '?'}</span>
                 </div>
                 
-                {/* POPRAWIONA GWARANCJA */}
                 <div className="flex justify-between items-center border-b border-white/10 pb-4 mb-4">
                   <span className="text-slate-300 font-medium">Gw. Baterii</span>
                   <span className="text-xl font-black text-white text-right">

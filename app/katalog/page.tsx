@@ -16,8 +16,6 @@ export default function CatalogPage() {
   const [selectedBrand, setSelectedBrand] = useState('Wszystkie marki');
   const [maxPrice, setMaxPrice] = useState('Dowolna');
   const [driveType, setDriveType] = useState('Wszystkie');
-  
-  // NOWOŚĆ: Stan sortowania w katalogu publicznym
   const [sortBy, setSortBy] = useState('newest');
 
   useEffect(() => {
@@ -68,7 +66,14 @@ export default function CatalogPage() {
     return { score: formattedScore, risk: 'Wysokie Ryzyko', color: 'bg-rose-50 text-rose-700 border-rose-200' };
   };
 
-  // Filtrowanie i sortowanie na żywo
+  // NOWOŚĆ: Wyliczenie Ekwiwalentu Spalania w L/100km
+  const getFuelEquivalent = (battery: number, range: number) => {
+    if (!battery || !range) return null;
+    const efficiencyKwhPer100 = (battery / range) * 100;
+    const litersEquivalent = efficiencyKwhPer100 / 8.9; // 1 litr benzyny to ok. 8.9 kWh
+    return litersEquivalent.toFixed(1);
+  };
+
   let filteredCars = cars.filter(car => {
     const brand = brands.find(b => b.id === car.brand_id);
     if (selectedBrand !== 'Wszystkie marki' && brand?.name !== selectedBrand) return false;
@@ -80,7 +85,6 @@ export default function CatalogPage() {
     return true;
   });
 
-  // LOGIKA SORTOWANIA NA FRONCIE
   if (sortBy === 'newest') filteredCars.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
   if (sortBy === 'price_asc') filteredCars.sort((a, b) => (a.price_katalog_eur || Infinity) - (b.price_katalog_eur || Infinity));
   if (sortBy === 'price_desc') filteredCars.sort((a, b) => (b.price_katalog_eur || 0) - (a.price_katalog_eur || 0));
@@ -116,7 +120,6 @@ export default function CatalogPage() {
       <main className="max-w-6xl mx-auto px-4 -mt-20">
         
         <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8 mb-8 border border-slate-100">
-          {/* NOWOŚĆ: 4-kolumnowy layout filtrów z sortowaniem */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
             <div>
               <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Marka</label>
@@ -144,7 +147,6 @@ export default function CatalogPage() {
                 <option value="FWD (Na przód)">FWD (Na przód)</option>
               </select>
             </div>
-            {/* PRZYCISK SORTOWANIA */}
             <div>
               <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-2">Sortuj po</label>
               <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="w-full p-3 border border-slate-200 rounded-xl bg-blue-50 text-blue-800 focus:ring-2 focus:ring-blue-500 outline-none transition text-sm font-black shadow-sm">
@@ -171,6 +173,7 @@ export default function CatalogPage() {
             {filteredCars.map((car) => {
               const brand = brands.find(b => b.id === car.brand_id);
               const rvData = calculateRVScore(car, brand);
+              const fuelEq = getFuelEquivalent(car.battery_kwh, car.range_real_km);
 
               return (
                 <div key={car.id} className="p-5 md:p-6 flex flex-col md:flex-row gap-6 hover:bg-slate-50 transition-colors duration-200 group">
@@ -213,17 +216,22 @@ export default function CatalogPage() {
                           {car.ncap_stars > 0 ? "⭐".repeat(car.ncap_stars) : <span className="text-slate-400 font-medium">Brak testu</span>}
                         </div>
                       </div>
+                      
+                      {/* ZAMIANA: Architektura na Ekwiwalent Spalania, bo to mocniej działa na wyobraźnię! */}
                       <div>
-                        <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Architektura</div>
-                        <div className="text-sm font-black text-slate-900">{car.architecture ? `${car.architecture}` : '-'}</div>
+                        <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Spalanie (Odpowiednik)</div>
+                        <div className="text-sm font-black text-emerald-600">
+                          {fuelEq ? `${fuelEq} l / 100km` : '-'}
+                        </div>
                       </div>
+
                       <div>
-                        <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Zasięg WLTP</div>
-                        <div className="text-sm font-black text-slate-700">{car.range_wltp_km ? `${car.range_wltp_km} km` : '-'}</div>
+                        <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Zasięg Realny</div>
+                        <div className="text-sm font-black text-slate-700">{car.range_real_km ? `${car.range_real_km} km` : '-'}</div>
                       </div>
                       <div>
                         <div className="text-slate-400 text-[10px] font-bold uppercase tracking-wider mb-1">Ładowanie DC</div>
-                        <div className="text-sm font-black text-emerald-600">{car.charge_time_min ? `${car.charge_time_min} min` : '-'}</div>
+                        <div className="text-sm font-black text-slate-900">{car.charge_time_min ? `${car.charge_time_min} min` : '-'}</div>
                       </div>
 
                       <div className="col-span-2 sm:col-span-2 border-t sm:border-t-0 sm:border-l pt-4 sm:pt-0 sm:pl-6 border-slate-100 flex flex-col justify-center">
